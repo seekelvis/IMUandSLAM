@@ -1,0 +1,2 @@
+- setup-file:
+    local-name: /home/elvis/catkin_ws/src/camera_calibration/build/devel/setup.sh
