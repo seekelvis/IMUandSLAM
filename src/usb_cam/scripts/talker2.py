@@ -33,7 +33,12 @@ def talker():
     rate = rospy.Rate(10) # 10hz
     while not rospy.is_shutdown():
         key=readkey()
-        if key == 'w':
+        if key == 'i':
+            cmd_str = 'init_acc'
+            pub.publish(cmd_str)
+            rate.sleep()
+
+        elif key == 'w':
             cmd_str = 'ww'
             pub.publish(cmd_str)
             rate.sleep()
@@ -41,6 +46,24 @@ def talker():
             cmd_str = 'ss'
             pub.publish(cmd_str)
             rate.sleep()
+        elif key == '1':
+            cmd_str = '11'
+            pub.publish(cmd_str)
+            rate.sleep()
+        elif key == '2':
+            cmd_str = '22'
+            pub.publish(cmd_str)
+            rate.sleep()
+        elif key == '3':
+            cmd_str = '33'
+            pub.publish(cmd_str)
+            rate.sleep()
+        elif key == '4':
+            cmd_str = '44'
+            pub.publish(cmd_str)
+            rate.sleep()
+    
+
         elif key == 'a':
             cmd_str = 'aa'
             pub.publish(cmd_str)

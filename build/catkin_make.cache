@@ -1,2 +1,2 @@
-usb_cam
+camera_calibration:usb_cam
 -DCATKIN_DEVEL_PREFIX=/home/elvis/catkin_ws/devel -DCMAKE_INSTALL_PREFIX=/home/elvis/catkin_ws/install -G Unix Makefiles

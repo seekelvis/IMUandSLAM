@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # license removed for brevity
 #coding=utf-8
-
+import os
 import rospy
 import re
 import math
@@ -14,6 +14,7 @@ import matplotlib.pyplot as plt
 # from matplotlib.patches import Circle
 # import numpy as np
 
+realtime_ = 0
 time_ = 0.0
 stop_time_ = 0.0
 yaw_ = 0.0
@@ -36,7 +37,9 @@ AYTHRE = abs(AYBIAS)
 
 plt.close()  
 fig=plt.figure()
-fig_=fig.add_subplot(1,1,1)
+fig_=fig.add_subplot(3,1,1)
+fig2_=fig.add_subplot(3,1,2)
+fig3_=fig.add_subplot(3,1,3)
 # fig_.axis("equal") 
 plt.grid(True) 
 plt.ion()  #interactive mode on
@@ -51,6 +54,7 @@ def callback(imuMsg):
 	global ax_
 	global ay_
 	global gz_
+	global realtime_
 	global time_
 	global stop_time_
 	global count_
@@ -58,6 +62,7 @@ def callback(imuMsg):
 	global AXBIAS,AXTHRE,AYBIAS,AYTHRE
 	global fig_
 
+	# os.system("clear")
 	print "=================="+str(count_)
 	count_ = count_ + 1
 	rospy.loginfo(rospy.get_caller_id() )	
@@ -88,18 +93,21 @@ def callback(imuMsg):
 		# print "ay: " + str(aymin) + "," + str(aymax)
 
 		####### Update time #####################
-		dt = float(imuMsg.header.stamp.nsecs - time_.nsecs)/1000000000		
+		dt = float(imuMsg.header.stamp.nsecs - time_.nsecs)/1000000000 *12/13		
 		if dt < 0:
 			dt = dt + 1		
 		print "dt = ",dt
 		time_ = imuMsg.header.stamp
+		realtime_ = realtime_ + float(dt) 
+		print "<<time = ",realtime_ , " >>"
 
+		# if 2 > 1 :
 		if stop_time_ > time_ : #It's not time to stop
 		# if (stop_time_.secs > time_.secs) or (stop_time_.secs = time_.secs and stop_time_.nsecs >= time_.nsecs) :
 			####### Update Gyroscopic data #####################
 			gz = imuMsg.angular_velocity.z	
 			# yaw_ = (yaw_ + imuMsg.angular_velocity.z * dt) % 360 
-			yaw_ = (yaw_ + imuMsg.angular_velocity.z * dt * 12/13) % 360 
+			yaw_ = (yaw_ + imuMsg.angular_velocity.z * dt ) % 360 
 			r_yaw = math.radians(yaw_)
 
 			###### deal with the bias of acc  ###################
@@ -119,8 +127,10 @@ def callback(imuMsg):
 			####### Integral operation #############################
 			vx_ = vx_ + ax_ * dt
 			vy_ = vy_ + ay_ * dt
-			px_ = px_ + vx_ * dt /135 * 500
-			py_ = py_ + vy_ * dt /135 * 500
+			px_ = px_ + vx_ * dt 
+			py_ = py_ + vy_ * dt 
+			# px_ = px_ + vx_ * dt /135 * 500
+			# py_ = py_ + vy_ * dt /135 * 500
 			
 			print "[[[[[update,,,,,,,,,,,,,,,,,,,,,,,,,,,,,]]]]]]"
 		else :
@@ -150,7 +160,7 @@ def key_action(data):
     # global ay_
     # global key_count_
     global stop_time_
-    if data.data == 'ww' or 'ss' or 'aa' or 'dd' or 'qq' or 'ee':
+    if data.data == 'ww' or 'ss' or 'aa' or 'dd' or 'qq' or 'ee' or '11' or '22':
         #ax_ = 0
         #ay_ = 0
         #vx_ = 0
@@ -163,7 +173,7 @@ def key_action(data):
         	
 
 def listener():
-	global fig_
+	global fig_,fig2_,fig3_
 
 	print "listener begin"
 
@@ -179,9 +189,13 @@ def listener():
 	
 	while count_>= 0:
 		if count_>30:
-			fig_.scatter(float(count_)/10, ax_, c='b', marker=".")
-			fig_.scatter(float(count_)/10, ay_, c='r', marker=".")
-			plt.pause(0.1)
+			fig_.scatter(realtime_, ax_, c='b', marker=".")
+			fig_.scatter(realtime_, ay_, c='r', marker=".")
+			fig2_.scatter(realtime_, vx_, c='b', marker=".")
+			fig2_.scatter(realtime_, vy_, c='r', marker=".")
+			fig3_.scatter(realtime_, px_, c='b', marker=".")
+			fig3_.scatter(realtime_, py_, c='r', marker=".")
+			plt.pause(0.001)
 
 
 	rospy.spin()

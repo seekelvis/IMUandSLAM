@@ -284,6 +284,15 @@ _gtest_INCLUDES:FILEPATH=/usr/include/gtest/gtest.h
 //Path to a file.
 _gtest_SOURCES:FILEPATH=/usr/src/gtest/src/gtest.cc
 
+//Path to a file.
+_path_name:FILEPATH=/home/elvis/catkin_ws/src/camera_calibration/test/multiple_boards.py
+
+//Value Computed by CMake
+camera_calibration_BINARY_DIR:STATIC=/home/elvis/catkin_ws/build/camera_calibration
+
+//Value Computed by CMake
+camera_calibration_SOURCE_DIR:STATIC=/home/elvis/catkin_ws/src/camera_calibration
+
 //The directory containing a CMake configuration file for camera_calibration_parsers.
 camera_calibration_parsers_DIR:PATH=/opt/ros/melodic/share/camera_calibration_parsers/cmake
 
@@ -521,7 +530,7 @@ CMAKE_MODULE_LINKER_FLAGS_RELWITHDEBINFO-ADVANCED:INTERNAL=1
 //ADVANCED property for variable: CMAKE_NM
 CMAKE_NM-ADVANCED:INTERNAL=1
 //number of local generators
-CMAKE_NUMBER_OF_MAKEFILES:INTERNAL=5
+CMAKE_NUMBER_OF_MAKEFILES:INTERNAL=6
 //ADVANCED property for variable: CMAKE_OBJCOPY
 CMAKE_OBJCOPY-ADVANCED:INTERNAL=1
 //ADVANCED property for variable: CMAKE_OBJDUMP
