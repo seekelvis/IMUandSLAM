@@ -3,6 +3,7 @@
 #coding=utf-8
 import os
 import rospy
+import datetime
 import re
 import math
 import struct
@@ -14,6 +15,10 @@ import matplotlib.pyplot as plt
 # from matplotlib.patches import Circle
 # import numpy as np
 
+time_str = datetime.datetime.strftime(datetime.datetime.now(),'%d-%H-%M-%S')
+# file = open('./'+time_str+'.csv', 'w')
+file1 = open('/home/elvis/catkin_ws/imuTestData/'+time_str+'.csv', 'w')
+file1.write("time,ax,ay,vx,vy,px,py,gz,yaw\n")
 realtime_ = 0
 time_ = 0.0
 stop_time_ = 0.0
@@ -61,6 +66,7 @@ def callback(imuMsg):
 	global axmin,axmax,aymin,aymax
 	global AXBIAS,AXTHRE,AYBIAS,AYTHRE
 	global fig_
+	global file
 
 	# os.system("clear")
 	print "=================="+str(count_)
@@ -93,14 +99,16 @@ def callback(imuMsg):
 		# print "ay: " + str(aymin) + "," + str(aymax)
 
 		####### Update time #####################
-		dt = float(imuMsg.header.stamp.nsecs - time_.nsecs)/1000000000 *12/13		
+		dt = float(imuMsg.header.stamp.nsecs - time_.nsecs)/1000000000 		
 		if dt < 0:
 			dt = dt + 1		
+		dt = dt * 12/13 #time offset
 		print "dt = ",dt
 		time_ = imuMsg.header.stamp
 		realtime_ = realtime_ + float(dt) 
 		print "<<time = ",realtime_ , " >>"
 
+		# print "~~~~~~~~~",stop_time_.secs,"~~~~~~~~~~~~~~",time_.secs
 		# if 2 > 1 :
 		if stop_time_ > time_ : #It's not time to stop
 		# if (stop_time_.secs > time_.secs) or (stop_time_.secs = time_.secs and stop_time_.nsecs >= time_.nsecs) :
@@ -132,21 +140,23 @@ def callback(imuMsg):
 			# px_ = px_ + vx_ * dt /135 * 500
 			# py_ = py_ + vy_ * dt /135 * 500
 			
-			print "[[[[[update,,,,,,,,,,,,,,,,,,,,,,,,,,,,,]]]]]]"
+			print "+++++++++++++++++++ update ++++++++++++++++"
 		else :
 			ax_ = 0
 			ay_ = 0
 			vx_ = 0
 			vy_ = 0
 			gz_ = 0
-			print "[[[[[nothing changed|||||||||||||||||||||]]]]]]"
-		print "ax: " + str(ax_) 
-		print "ay: " + str(ay_) 	
+			print "&&&&&&&&&&&& nothing changed &&&&&&&&&&&&&&&&"
+		# print "ax: " + str(ax_) 
+		# print "ay: " + str(ay_) 	
 		print "gz: " + str(imuMsg.angular_velocity.z)
-		print "vx: " + str(vx_) 
-		print "vy: " + str(vy_)		
+		# print "vx: " + str(vx_) 
+		# print "vy: " + str(vy_)		
 		print "yaw = ", yaw_
-		print "position = (", px_ , "," , py_ , ")"
+		# print "position = (", px_ , "," , py_ , ")"
+		file1.write(str(realtime_)+","+str(ax_) + ","+ str(ay_) + "," + str(vx_) + "," + str(vy_)+ ","+ str(px_)+ ","+ str(py_)+ "," + str(imuMsg.angular_velocity.z) + ","+ str(yaw_)+"\n")
+		# file1.write(ax_, ",", ay_, ",", vx_, ",", vy_, ",", px_, ",", py_, ",", imuMsg.angular_velocity.z, ",", yaw_)
 		# fig_.scatter(count_, ax_, c='b', marker=".")
 		# plt.pause(0.001)
 
@@ -159,6 +169,7 @@ def key_action(data):
     # global ax_
     # global ay_
     # global key_count_
+    # print "+++++++++++++++++++++++++++++++++++++++++++++++++++++++++"
     global stop_time_
     if data.data == 'ww' or 'ss' or 'aa' or 'dd' or 'qq' or 'ee' or '11' or '22':
         #ax_ = 0
@@ -167,38 +178,42 @@ def key_action(data):
         #vy_ = 0
         #yaw_ = 0
         if stop_time_ <= time_ :
-        	stop_time_ = time_ +  rospy.Duration(0.108 * 9)
+        	stop_time_ = time_ + rospy.Duration(0.108 * 9)
        	else :
-       		stop_time_ = stop_time_ +  rospy.Duration(0.108)
+       		stop_time_ = stop_time_ + rospy.Duration(0.108)
         	
 
 def listener():
+	global file1
 	global fig_,fig2_,fig3_
+	try:		
 
-	print "listener begin"
-
-    
-
-	rospy.init_node('getting_position', anonymous=True)
-	print "listener 1"
-	rospy.Subscriber('IMU_data', Imu, callback)
-	print "listener 1.5"
-	rospy.Subscriber("car_cmd", String, key_action)
-	print "listener 2"
-    # spin() simply keeps python from exiting until this node is stopped
-	
-	while count_>= 0:
-		if count_>30:
-			fig_.scatter(realtime_, ax_, c='b', marker=".")
-			fig_.scatter(realtime_, ay_, c='r', marker=".")
-			fig2_.scatter(realtime_, vx_, c='b', marker=".")
-			fig2_.scatter(realtime_, vy_, c='r', marker=".")
-			fig3_.scatter(realtime_, px_, c='b', marker=".")
-			fig3_.scatter(realtime_, py_, c='r', marker=".")
-			plt.pause(0.001)
+		print "listener begin"   
+		rospy.init_node('getting_position', anonymous=True)
+		print "listener 1"
+		rospy.Subscriber('IMU_data', Imu, callback)
+		print "listener 1.5"
+		rospy.Subscriber("car_cmd", String, key_action)
+		print "listener 2"
+	    # spin() simply keeps python from exiting until this node is stopped
+		
+		while count_>= 0:
+			if count_>30:
+				fig_.scatter(realtime_, ax_, c='b', marker=".")
+				fig_.scatter(realtime_, ay_, c='r', marker=".")
+				fig2_.scatter(realtime_, vx_, c='b', marker=".")
+				fig2_.scatter(realtime_, vy_, c='r', marker=".")
+				fig3_.scatter(realtime_, px_, c='b', marker=".")
+				fig3_.scatter(realtime_, py_, c='r', marker=".")
+				plt.pause(0.001)
 
 
-	rospy.spin()
-	print "listener end"
+		rospy.spin()
+
+	finally:
+		if file1:
+			file1.close()
+		print "listener end"
+
 if __name__ == '__main__':
 	listener()
