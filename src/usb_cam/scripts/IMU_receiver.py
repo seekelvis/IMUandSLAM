@@ -103,7 +103,7 @@ def callback(imuMsg):
 		if dt < 0:
 			dt = dt + 1		
 		dt = dt * 12/13 #time offset
-		print "dt = ",dt
+		# print "dt = ",dt
 		time_ = imuMsg.header.stamp
 		realtime_ = realtime_ + float(dt) 
 		print "<<time = ",realtime_ , " >>"
@@ -125,12 +125,12 @@ def callback(imuMsg):
 				ax_ = 0
 			else:
 				ax_ = imuMsg.linear_acceleration.x * math.cos(r_yaw) - imuMsg.linear_acceleration.y * math.sin(r_yaw)
-				print "ax = ", ax_, " = ", imuMsg.linear_acceleration.x, " * ", math.cos(r_yaw), " - ", imuMsg.linear_acceleration.y, " * ",math.sin(r_yaw)
+				# print "ax = ", ax_, " = ", imuMsg.linear_acceleration.x, " * ", math.cos(r_yaw), " - ", imuMsg.linear_acceleration.y, " * ",math.sin(r_yaw)
 			if abs(imuMsg.linear_acceleration.y) <= AYTHRE :
 				ay_ = 0
 			else:
 				ay_ = imuMsg.linear_acceleration.x * math.sin(r_yaw) + imuMsg.linear_acceleration.y * math.cos(r_yaw)
-				print "ay = ", ay_, " = ", imuMsg.linear_acceleration.y, " * ", math.sin(r_yaw), " + ", imuMsg.linear_acceleration.x, " * ",math.cos(r_yaw)
+				# print "ay = ", ay_, " = ", imuMsg.linear_acceleration.y, " * ", math.sin(r_yaw), " + ", imuMsg.linear_acceleration.x, " * ",math.cos(r_yaw)
 			
 			####### Integral operation #############################
 			vx_ = vx_ + ax_ * dt
@@ -140,21 +140,22 @@ def callback(imuMsg):
 			# px_ = px_ + vx_ * dt /135 * 500
 			# py_ = py_ + vy_ * dt /135 * 500
 			
-			print "+++++++++++++++++++ update ++++++++++++++++"
+			# print "+++++++++++++++++++ update ++++++++++++++++"
 		else :
 			ax_ = 0
 			ay_ = 0
 			vx_ = 0
 			vy_ = 0
 			gz_ = 0
-			print "&&&&&&&&&&&& nothing changed &&&&&&&&&&&&&&&&"
+			# print "&&&&&&&&&&&& nothing changed &&&&&&&&&&&&&&&&"
 		# print "ax: " + str(ax_) 
 		# print "ay: " + str(ay_) 	
-		print "gz: " + str(imuMsg.angular_velocity.z)
+		# print "gz: " + str(imuMsg.angular_velocity.z)
 		# print "vx: " + str(vx_) 
 		# print "vy: " + str(vy_)		
 		print "yaw = ", yaw_
 		# print "position = (", px_ , "," , py_ , ")"
+		file1.write(str(time_.secs)+"."+str(time_.nsecs)+",")
 		file1.write(str(realtime_)+","+str(ax_) + ","+ str(ay_) + "," + str(vx_) + "," + str(vy_)+ ","+ str(px_)+ ","+ str(py_)+ "," + str(imuMsg.angular_velocity.z) + ","+ str(yaw_)+"\n")
 		# file1.write(ax_, ",", ay_, ",", vx_, ",", vy_, ",", px_, ",", py_, ",", imuMsg.angular_velocity.z, ",", yaw_)
 		# fig_.scatter(count_, ax_, c='b', marker=".")
