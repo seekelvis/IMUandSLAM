@@ -18,7 +18,7 @@ import matplotlib.pyplot as plt
 time_str = datetime.datetime.strftime(datetime.datetime.now(),'%d-%H-%M-%S')
 # file = open('./'+time_str+'.csv', 'w')
 file1 = open('/home/elvis/catkin_ws/imuTestData/'+time_str+'.csv', 'w')
-file1.write("time,ax,ay,vx,vy,px,py,gz,yaw\n")
+file1.write("stamp,time,ax,ay,vx,vy,px,py,gz,yaw\n")
 realtime_ = 0
 time_ = 0.0
 stop_time_ = 0.0
@@ -35,10 +35,13 @@ count_ = 0
 # key_lastcount = 0
 axmin = aymin = 30
 axmax = aymax = -30
-AXBIAS = (-0.126953125 + 0)/2
+AXBIAS = 0
 AXTHRE = abs(AXBIAS) #yuzhi
-AYBIAS = (0.01171875 + 0.029541015625)/2
+AYBIAS = 0
 AYTHRE = abs(AYBIAS)
+
+STATE = 0  #0 stop ; 1 run
+stop_count = 0
 
 plt.close()  
 fig=plt.figure()
@@ -67,6 +70,8 @@ def callback(imuMsg):
 	global AXBIAS,AXTHRE,AYBIAS,AYTHRE
 	global fig_
 	global file
+	global STATE
+	global stop_count
 
 	# os.system("clear")
 	print "=================="+str(count_)
@@ -84,25 +89,25 @@ def callback(imuMsg):
 		if ax_ > axmax:
 			axmax = ax_
 		if ay_ > aymax:
-			aymax = ay_		
+			aymax = ay_	
+		stop_time_ = time_	
+
 	elif count_ >= 30:
 		####### Set the bias and threshold value #####################
-		if count_ == 30:
-			AXBIAS = (axmin + axmax)/2
-			AXTHRE = abs(AXBIAS)/2 
-			AYBIAS = (aymin + aymax)/2
-			AYTHRE = abs(AYBIAS)/2
+		
 			# AXTHRE = 0
 			# AYTHRE = 0
-			stop_time_ = time_
+			
 		# print "ax: " + str(axmin) + "," + str(axmax)
 		# print "ay: " + str(aymin) + "," + str(aymax)
 
 		####### Update time #####################
 		dt = float(imuMsg.header.stamp.nsecs - time_.nsecs)/1000000000 		
 		if dt < 0:
-			dt = dt + 1		
-		dt = dt * 12/13 #time offset
+			dt = (dt + 1) * 12/13
+		else :		
+			dt = dt * 12/13 #time offset
+
 		# print "dt = ",dt
 		time_ = imuMsg.header.stamp
 		realtime_ = realtime_ + float(dt) 
@@ -111,10 +116,17 @@ def callback(imuMsg):
 		# print "~~~~~~~~~",stop_time_.secs,"~~~~~~~~~~~~~~",time_.secs
 		# if 2 > 1 :
 		if stop_time_ > time_ : #It's not time to stop
-		# if (stop_time_.secs > time_.secs) or (stop_time_.secs = time_.secs and stop_time_.nsecs >= time_.nsecs) :
+
+			if STATE == 0:
+				STATE = 1
+				AXBIAS = (axmin + axmax)/2
+				# AXTHRE = abs(AXBIAS)/2 
+				AYBIAS = (aymin + aymax)/2
+				# AYTHRE = abs(AYBIAS)/2
+
+
 			####### Update Gyroscopic data #####################
-			gz = imuMsg.angular_velocity.z	
-			# yaw_ = (yaw_ + imuMsg.angular_velocity.z * dt) % 360 
+			gz = imuMsg.angular_velocity.z			
 			yaw_ = (yaw_ + imuMsg.angular_velocity.z * dt ) % 360 
 			r_yaw = math.radians(yaw_)
 
@@ -133,20 +145,53 @@ def callback(imuMsg):
 				# print "ay = ", ay_, " = ", imuMsg.linear_acceleration.y, " * ", math.sin(r_yaw), " + ", imuMsg.linear_acceleration.x, " * ",math.cos(r_yaw)
 			
 			####### Integral operation #############################
+			# maxv = 0.05555
+			# ax_ = ax_ * 10
+			# ay_ = ay_ * 10
 			vx_ = vx_ + ax_ * dt
 			vy_ = vy_ + ay_ * dt
+			# if vx_ > maxv:
+			# 	vx_ =  maxv
+			# if vy_ > maxv:
+			# 	vy_= maxv
+			# if vx_ < 0-maxv:
+			# 	vx_ =  0-maxv
+			# if vy_ < 0-maxv:
+			# 	vy_= 0-maxv
 			px_ = px_ + vx_ * dt 
 			py_ = py_ + vy_ * dt 
 			# px_ = px_ + vx_ * dt /135 * 500
 			# py_ = py_ + vy_ * dt /135 * 500
 			
 			# print "+++++++++++++++++++ update ++++++++++++++++"
-		else :
+		else :		
+
+			stop_count = stop_count + 1	
+			if STATE == 1:
+				STATE = 0
+				axmin = imuMsg.linear_acceleration.x
+				axmax = imuMsg.linear_acceleration.x
+				aymin = imuMsg.linear_acceleration.y   
+				aymax = imuMsg.linear_acceleration.y  
+				stop_count = 0 
+			elif stop_count > 10 and stop_count < 40 :
+				if imuMsg.linear_acceleration.x < axmin:
+					axmin = imuMsg.linear_acceleration.x
+				if imuMsg.linear_acceleration.y < aymin:
+					aymin = imuMsg.linear_acceleration.y
+				if imuMsg.linear_acceleration.x > axmax:
+					axmax = imuMsg.linear_acceleration.x
+				if imuMsg.linear_acceleration.y > aymax:
+					aymax = imuMsg.linear_acceleration.y	
+
+			
+
 			ax_ = 0
 			ay_ = 0
 			vx_ = 0
 			vy_ = 0
 			gz_ = 0
+			
 			# print "&&&&&&&&&&&& nothing changed &&&&&&&&&&&&&&&&"
 		# print "ax: " + str(ax_) 
 		# print "ay: " + str(ay_) 	
@@ -182,6 +227,9 @@ def key_action(data):
         	stop_time_ = time_ + rospy.Duration(0.108 * 9)
        	else :
        		stop_time_ = stop_time_ + rospy.Duration(0.108)
+    elif data.data == 'xx':
+    	file1.write("slambegin\n")
+
         	
 
 def listener():
