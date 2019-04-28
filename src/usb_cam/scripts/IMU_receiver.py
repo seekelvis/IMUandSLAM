@@ -22,13 +22,27 @@ file1.write("stamp,time,ax,ay,vx,vy,px,py,gz,yaw\n")
 realtime_ = 0
 time_ = 0.0
 stop_time_ = 0.0
+
+MAXV1 = 0.07 *5/6 #m/s
+MAXV2 = 0.05 *5/6#m/s
+
+w1_time_=0.0
+w_time_ = 0.0
+s_time_ = 0.0
+a_time_ = 0.0
+d_time_ = 0.0
+# in the robot system
+vx_r=0.0
+vy_r=0.0
+ax_r = 0.0
+ay_r = 0.0
+#in the world system
 yaw_ = 0.0
 px_ = 0.0
 py_ = 0.0
 vx_ = 0.0
 vy_ = 0.0
-ax_ = 0.0
-ay_ = 0.0
+
 gz_ = 0.0
 count_ = 0
 # key_count = 0
@@ -54,13 +68,23 @@ plt.ion()  #interactive mode on
 
 
 def callback(imuMsg):
+	global a_time_
+	global d_time_
+	global w_time_
+	global s_time_
+	global w1_time_
+
+	global ax_r
+	global ay_r
+	global vx_r
+	global vy_r
+
 	global yaw_
 	global px_
 	global py_
 	global vx_
 	global vy_
-	global ax_
-	global ay_
+
 	global gz_
 	global realtime_
 	global time_
@@ -74,23 +98,28 @@ def callback(imuMsg):
 	global stop_count
 
 	# os.system("clear")
-	print "=================="+str(count_)
+	# print "=================="+str(count_)
 	count_ = count_ + 1
 	rospy.loginfo(rospy.get_caller_id() )	
 	if count_ > 2 and count_ < 30:
 		time_ = imuMsg.header.stamp
-		ax_ = imuMsg.linear_acceleration.x
-		ay_ = imuMsg.linear_acceleration.y    	
+		ax_r = imuMsg.linear_acceleration.x
+		ay_r = imuMsg.linear_acceleration.y    	
 		yaw_ = imuMsg.angular_velocity.z
-		if ax_ < axmin:
-			axmin = ax_
-		if ay_ < aymin:
-			aymin = ay_
-		if ax_ > axmax:
-			axmax = ax_
-		if ay_ > aymax:
-			aymax = ay_	
+		if ax_r < axmin:
+			axmin = ax_r
+		if ay_r < aymin:
+			aymin = ay_r
+		if ax_r > axmax:
+			axmax = ax_r
+		if ay_r > aymax:
+			aymax = ay_r	
 		stop_time_ = time_	
+		w_time_ = time_
+		s_time_ = time_
+		a_time_ = time_
+		d_time_ = time_
+		w1_time_ = time_
 
 	elif count_ >= 30:
 		####### Set the bias and threshold value #####################
@@ -133,35 +162,80 @@ def callback(imuMsg):
 			###### deal with the bias of acc  ###################
 			imuMsg.linear_acceleration.x = imuMsg.linear_acceleration.x - AXBIAS
 			imuMsg.linear_acceleration.y = imuMsg.linear_acceleration.y - AYBIAS
+
 			if abs(imuMsg.linear_acceleration.x) <= AXTHRE :
-				ax_ = 0
+				ax_r = 0				
 			else:
-				ax_ = imuMsg.linear_acceleration.x * math.cos(r_yaw) - imuMsg.linear_acceleration.y * math.sin(r_yaw)
-				# print "ax = ", ax_, " = ", imuMsg.linear_acceleration.x, " * ", math.cos(r_yaw), " - ", imuMsg.linear_acceleration.y, " * ",math.sin(r_yaw)
+				ax_r = imuMsg.linear_acceleration.x *10
+				vx_r = vx_r + ax_r * dt		
+
 			if abs(imuMsg.linear_acceleration.y) <= AYTHRE :
-				ay_ = 0
+				ay_r = 0
 			else:
-				ay_ = imuMsg.linear_acceleration.x * math.sin(r_yaw) + imuMsg.linear_acceleration.y * math.cos(r_yaw)
-				# print "ay = ", ay_, " = ", imuMsg.linear_acceleration.y, " * ", math.sin(r_yaw), " + ", imuMsg.linear_acceleration.x, " * ",math.cos(r_yaw)
-			
+				ay_r = imuMsg.linear_acceleration.y *10
+				vy_r = vy_r + ay_r * dt
+
+		
+
+			if (vx_r > MAXV1):
+				vx_r = MAXV1
+			if (vx_r < -1*MAXV1):
+				vx_r = -1*MAXV1
+			if (vy_r > MAXV2):
+				vy_r = MAXV2
+			if (vy_r < -1*MAXV2):
+				vy_r = -1*MAXV2
+
+			if w1_time_ > time_:
+				print "11111111111111111111111111111111111111111111"
+				if vx_r < 0:
+					vx_r = 0
+				vx = vx_r +  MAXV1*2
+				# vx = MAXV1
+				vy = vy_r /100
+				vx_ = vx * math.cos(r_yaw) - vy * math.sin(r_yaw)
+				vy_ = vx * math.sin(r_yaw) + vy * math.cos(r_yaw)	
+			elif w_time_ > time_:
+				print "wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww"
+				if vx_r < 0:
+					vx_r = 0
+				vx = vx_r +  MAXV1
+				# vx = MAXV1
+				vy = vy_r /100
+				vx_ = vx * math.cos(r_yaw) - vy * math.sin(r_yaw)
+				vy_ = vx * math.sin(r_yaw) + vy * math.cos(r_yaw)
+			elif s_time_ > time_ :
+				print "ssssssssssssssssssssssssssssssssssssssssssss"
+				if vx_r > 0:
+					vx_r = 0
+				vx = vx_r - MAXV1
+				# vx = 0- MAXV1
+				vy = vy_r /100
+				vx_ = vx * math.cos(r_yaw) - vy * math.sin(r_yaw)
+				vy_ = vx * math.sin(r_yaw) + vy * math.cos(r_yaw)
+			elif a_time_ > time_:
+				print "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+				if vy_r < 0:
+					vy_r = 0
+				vx = vx_r /100
+				vy = vy_r +  MAXV2
+				# vy =  MAXV2
+				vx_ = vx * math.cos(r_yaw) - vy * math.sin(r_yaw)
+				vy_ = vx * math.sin(r_yaw) + vy * math.cos(r_yaw)
+			elif d_time_ > time_:
+				print "ddddddddddddddddddddddddddddddddddddddddddddd"
+				if vy_r > 0:
+					vy_r = 0 
+				vx = vx_r /100
+				vy = vy_r -  MAXV2
+				# vy = 0- MAXV2
+				vx_ = vx * math.cos(r_yaw) - vy * math.sin(r_yaw)
+				vy_ = vx * math.sin(r_yaw) + vy * math.cos(r_yaw)
+	
 			####### Integral operation #############################
-			# maxv = 0.05555
-			# ax_ = ax_ * 10
-			# ay_ = ay_ * 10
-			vx_ = vx_ + ax_ * dt
-			vy_ = vy_ + ay_ * dt
-			# if vx_ > maxv:
-			# 	vx_ =  maxv
-			# if vy_ > maxv:
-			# 	vy_= maxv
-			# if vx_ < 0-maxv:
-			# 	vx_ =  0-maxv
-			# if vy_ < 0-maxv:
-			# 	vy_= 0-maxv
+
 			px_ = px_ + vx_ * dt 
 			py_ = py_ + vy_ * dt 
-			# px_ = px_ + vx_ * dt /135 * 500
-			# py_ = py_ + vy_ * dt /135 * 500
 			
 			# print "+++++++++++++++++++ update ++++++++++++++++"
 		else :		
@@ -186,8 +260,10 @@ def callback(imuMsg):
 
 			
 
-			ax_ = 0
-			ay_ = 0
+			ax_r = 0
+			ay_r = 0
+			vx_r = 0
+			vy_r = 0
 			vx_ = 0
 			vy_ = 0
 			gz_ = 0
@@ -201,7 +277,7 @@ def callback(imuMsg):
 		print "yaw = ", yaw_
 		# print "position = (", px_ , "," , py_ , ")"
 		file1.write(str(time_.secs)+"."+str(time_.nsecs)+",")
-		file1.write(str(realtime_)+","+str(ax_) + ","+ str(ay_) + "," + str(vx_) + "," + str(vy_)+ ","+ str(px_)+ ","+ str(py_)+ "," + str(imuMsg.angular_velocity.z) + ","+ str(yaw_)+"\n")
+		file1.write(str(realtime_)+","+str(ax_r) + ","+ str(ay_r) + "," + str(vx_) + "," + str(vy_)+ ","+ str(px_)+ ","+ str(py_)+ "," + str(imuMsg.angular_velocity.z) + ","+ str(yaw_)+"\n")
 		# file1.write(ax_, ",", ay_, ",", vx_, ",", vy_, ",", px_, ",", py_, ",", imuMsg.angular_velocity.z, ",", yaw_)
 		# fig_.scatter(count_, ax_, c='b', marker=".")
 		# plt.pause(0.001)
@@ -209,26 +285,57 @@ def callback(imuMsg):
 	# rospy.loginfo(rospy.get_caller_id() + 'a0 (%f,%f, %f)', imuMsg.linear_acceleration.x, imuMsg.linear_acceleration.y, imuMsg.angular_velocity.z)
 	
 def key_action(data):
-    # global yaw_
-    # global vx_
-    # global vy_
-    # global ax_
-    # global ay_
-    # global key_count_
+ 
     # print "+++++++++++++++++++++++++++++++++++++++++++++++++++++++++"
-    global stop_time_
-    if data.data == 'ww' or 'ss' or 'aa' or 'dd' or 'qq' or 'ee' or '11' or '22':
-        #ax_ = 0
-        #ay_ = 0
-        #vx_ = 0
-        #vy_ = 0
-        #yaw_ = 0
-        if stop_time_ <= time_ :
-        	stop_time_ = time_ + rospy.Duration(0.108 * 9)
-       	else :
-       		stop_time_ = stop_time_ + rospy.Duration(0.108)
-    elif data.data == 'xx':
-    	file1.write("slambegin\n")
+	global stop_time_
+	global a_time_
+	global d_time_
+	global w_time_
+	global s_time_
+	global w1_time_
+    # global file1
+
+	if data.data == 'ww' or 'ss' or 'aa' or 'dd' or 'qq' or 'ee' or '11' or '22':
+		if stop_time_ <= time_ :
+			stop_time_ = time_ + rospy.Duration(0.108 * 9)
+		else :
+			top_time_ = stop_time_ + rospy.Duration(0.108)
+
+
+		if 	data.data == '11':
+	   		if w1_time_ <= time_ :
+				w1_time_ = time_ + rospy.Duration(0.108 * 9)
+			else :
+				w1_time_ = w1_time_ + rospy.Duration(0.108)
+		if 	data.data == 'ww':
+	   		if w_time_ <= time_ :
+				w_time_ = time_ + rospy.Duration(0.108 * 9)
+			else :
+				w_time_ = w_time_ + rospy.Duration(0.108)
+
+		if 	data.data == 'ss':
+			if s_time_ <= time_ :
+				s_time_ = time_ + rospy.Duration(0.108 * 9)
+			else :
+				s_time_ = s_time_ + rospy.Duration(0.108)
+
+		if 	data.data == 'aa':
+	   		if a_time_ <= time_ :
+				a_time_ = time_ + rospy.Duration(0.108 * 9)
+			else :
+				a_time_ = a_time_ + rospy.Duration(0.108)
+
+		if 	data.data == 'dd':
+	   		if d_time_ <= time_ :
+				d_time_ = time_ + rospy.Duration(0.108 * 9)
+			else :
+				d_time_ = d_time_ + rospy.Duration(0.108)
+
+
+	if data.data == 'xx':
+		file1.write("slambegin\n")
+	if data.data == 'cc':
+		file1.close()
 
         	
 
@@ -248,8 +355,8 @@ def listener():
 		
 		while count_>= 0:
 			if count_>30:
-				fig_.scatter(realtime_, ax_, c='b', marker=".")
-				fig_.scatter(realtime_, ay_, c='r', marker=".")
+				fig_.scatter(realtime_, ax_r, c='b', marker=".")
+				fig_.scatter(realtime_, ay_r, c='r', marker=".")
 				fig2_.scatter(realtime_, vx_, c='b', marker=".")
 				fig2_.scatter(realtime_, vy_, c='r', marker=".")
 				fig3_.scatter(realtime_, px_, c='b', marker=".")

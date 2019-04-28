@@ -37,6 +37,10 @@ def talker():
             cmd_str = 'init_acc'
             pub.publish(cmd_str)
             rate.sleep()
+        elif key == 'c':   
+            cmd_str = 'cc'#close file
+            pub.publish(cmd_str)
+            rate.sleep()
 
         elif key == 'w':
             cmd_str = 'ww'
